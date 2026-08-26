@@ -69,7 +69,7 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
 
     try:
         # Ambil pesan list utama berdasarkan ID Message dari channel ptpt-x8
-        msg = await rekap_channel.fetch_message(LIST_MESSAGE_ID)
+        msg = await rekap_channel.fetch_message(1537343199348006993)
     except discord.NotFound:
         await interaction.followup.send(
             f"⚠️ Pesan list utama tidak ditemukan di channel #{target_channel_name}! Pastikan LIST_MESSAGE_ID benar.",

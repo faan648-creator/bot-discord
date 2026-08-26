@@ -105,6 +105,57 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
             ephemeral=True
         )
 
+# ==========================================
+# 4. SLASH COMMAND: /setuplist (Otomatis kirim format list Fish It X8)
+# ==========================================
+@bot.tree.command(name="setuplist", description="Mengirim pesan list rekap Fish It X8 otomatis ke channel ini")
+async def setuplist(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    # Pastikan perintah dijalankan di channel ptpt-x8
+    if interaction.channel.name != "ptpt-x8":
+        await interaction.followup.send("⚠️ Perintah ini hanya bisa digunakan di channel **#ptpt-x8**!", ephemeral=True)
+        return
+
+    # Format teks list Fish It X8 sesuai permintaan lu
+    format_list = (
+        "LIST BOOST SERVER FISH IT X8 By <@617248535913693194>  <@785872264100446210>\n\n"
+        "13k/SLOT\n\n"
+        "KLOTER 21 ( 24 JAM )\n\n"
+        "LIST MENGGUNAKAN Usn & Nick ROBLOX\n"
+        "Contoh : zens1907\n\n"
+        "1. -\n"
+        "2. -\n"
+        "3. -\n"
+        "4. -\n"
+        "5. -\n"
+        "6. -\n"
+        "7. -\n"
+        "8. -\n"
+        "9. -\n"
+        "10. -\n"
+        "11. -\n"
+        "12. -\n"
+        "13. -\n"
+        "14. -\n"
+        "15. -\n"
+        "16. -\n"
+        "17. -\n"
+        "18. -\n"
+        "19. dmin 2\n"
+        "20. Admin 1"
+    )
+
+    # Bot mengirim pesan list ke channel ptpt-x8
+    sent_message = await interaction.channel.send(format_list)
+    
+    await interaction.followup.send(
+        f"✅ Berhasil membuat pesan list Kloter 21!\n\n"
+        f"Salin Message ID di bawah ini dan masukkan ke variabel `LIST_MESSAGE_ID` di kodingan bot:\n"
+        f"`{sent_message.id}`",
+        ephemeral=True
+    )
+
 # Jalankan Bot
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 if not TOKEN:

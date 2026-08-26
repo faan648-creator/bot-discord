@@ -15,13 +15,11 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot Discord is alive!")
 
 def run_web_server():
-    # Render otomatis nyediain port lewat environment variable PORT
     port = int(os.getenv("PORT", 10000))
     server = HTTPServer(('0.0.0.0', port), SimpleHandler)
     print(f"Fake web server running on port {port}")
     server.serve_forever()
 
-# Jalankan fake web server di background thread secara paralel
 web_thread = threading.Thread(target=run_web_server)
 web_thread.daemon = True
 web_thread.start()
@@ -35,9 +33,8 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Ganti dengan ID asli dari server Discord lu
-REKAP_CHANNEL_ID = 123456789012345678  # ID Channel tempat list rekap berada
-LIST_MESSAGE_ID = 987654321098765432   # ID Pesan list utama
+# ID Pesan list utama yang mau diedit otomatis (tetap pakai ID pesan listnya)
+LIST_MESSAGE_ID = 987654321098765432  
 
 @bot.event
 async def on_ready():
@@ -59,22 +56,34 @@ async def on_ready():
 async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: str):
     await interaction.response.defer(ephemeral=True)
 
-    rekap_channel = interaction.guild.get_channel(REKAP_CHANNEL_ID)
+    # Bot otomatis mencari channel berdasarkan nama "ptpt-x8" di server ini
+    target_channel_name = "ptpt-x8"
+    rekap_channel = discord.utils.get(interaction.guild.text_channels, name=target_channel_name)
+    
     if not rekap_channel:
-        await interaction.followup.send("⚠️ Channel rekap tidak ditemukan!", ephemeral=True)
+        await interaction.followup.send(
+            f"⚠️ Channel dengan nama **#{target_channel_name}** tidak ditemukan di server ini!",
+            ephemeral=True
+        )
         return
 
     try:
+        # Ambil pesan list utama berdasarkan ID Message dari channel ptpt-x8
         msg = await rekap_channel.fetch_message(LIST_MESSAGE_ID)
     except discord.NotFound:
-        await interaction.followup.send("⚠️ Pesan list utama tidak ditemukan!", ephemeral=True)
+        await interaction.followup.send(
+            f"⚠️ Pesan list utama tidak ditemukan di channel #{target_channel_name}! Pastikan LIST_MESSAGE_ID benar.",
+            ephemeral=True
+        )
         return
 
+    # Ambil teks asli dari pesan list
     current_content = msg.content
     lines = current_content.split("\n")
     updated_lines = []
     found = False
 
+    # Cari baris yang sesuai dengan nomor slot yang mau diisi
     for line in lines:
         if line.strip().startswith(f"{slot_number}."):
             updated_lines.append(f"{slot_number}. {roblox_usn} ✅")
@@ -84,10 +93,17 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
 
     if found:
         new_content = "\n".join(updated_lines)
+        # Edit pesan list di channel ptpt-x8 secara otomatis
         await msg.edit(content=new_content)
-        await interaction.followup.send(f"✅ Slot nomor **{slot_number}** berhasil diisi oleh **{roblox_usn}**!", ephemeral=True)
+        await interaction.followup.send(
+            f"✅ Slot nomor **{slot_number}** berhasil diisi oleh **{roblox_usn}** di channel **#{target_channel_name}**!",
+            ephemeral=True
+        )
     else:
-        await interaction.followup.send(f"⚠️ Slot nomor {slot_number} tidak ditemukan!", ephemeral=True)
+        await interaction.followup.send(
+            f"⚠️ Slot nomor {slot_number} tidak ditemukan dalam format list!",
+            ephemeral=True
+        )
 
 # Jalankan Bot
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")

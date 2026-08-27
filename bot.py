@@ -15,6 +15,10 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Bot Discord is alive!")
 
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
+
 def run_web_server():
     port = int(os.getenv("PORT", 10000))
     server = HTTPServer(('0.0.0.0', port), SimpleHandler)
@@ -35,7 +39,7 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ID Pesan list utama yang mau diedit otomatis (untuk command /done)
-LIST_MESSAGE_ID = 1542521523095740426
+LIST_MESSAGE_ID = 1542521523095740426  
 
 @bot.event
 async def on_ready():
@@ -211,7 +215,7 @@ async def setuplist(interaction: discord.Interaction):
     sent_message = await interaction.channel.send(format_list)
     
     await interaction.followup.send(
-        f"✅ Berhasil membuat pesan list Kloter 21!\n\n"
+        f"✅ Berhasil membuat pesan list Kloter 22!\n\n"
         f"Salin Message ID di bawah ini dan masukkan ke variabel `LIST_MESSAGE_ID` di kodingan bot:\n"
         f"`{sent_message.id}`",
         ephemeral=True

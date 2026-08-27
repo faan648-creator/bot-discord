@@ -104,7 +104,6 @@ class PaymentView(discord.ui.View):
 class TicketInsideView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        # Menambahkan tombol pembayaran ke dalam view tiket
         self.add_item(PaymentButtonSelect())
         self.add_item(CloseTicketButton())
 
@@ -114,7 +113,6 @@ class PaymentButtonSelect(discord.ui.Button):
         super().__init__(label="💳 Pilih Metode Pembayaran", style=discord.ButtonStyle.blurple, custom_id="btn_pay_inside")
 
     async def callback(self, interaction: discord.Interaction):
-        # Memunculkan pilihan metode bayar via ephemeral atau langsung teks
         view = PaymentView()
         await interaction.response.send_message(
             "💳 **SILAKAN PILIH METODE PEMBAYARAN DI BAWAH INI:**",
@@ -128,14 +126,12 @@ class CloseTicketButton(discord.ui.Button):
         super().__init__(label="🔒 Close Ticket", style=discord.ButtonStyle.red, custom_id="btn_close_ticket")
 
     async def callback(self, interaction: discord.Interaction):
-        # Cek apakah yang klik punya izin Admin / Manage Channels
         if not interaction.user.guild_permissions.manage_channels:
             await interaction.response.send_message("❌ Kamu tidak memiliki izin untuk menutup tiket ini!", ephemeral=True)
             return
 
         await interaction.response.send_message("🔒 Tiket dikonfirmasi ditutup. Channel akan dihapus otomatis dalam **5 detik**...")
         
-        # Jeda 5 detik
         await asyncio.sleep(5)
 
         try:
@@ -162,15 +158,15 @@ class TicketCreateView(discord.ui.View):
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
-        # Cari kategori TICKETS (jika ada, atau buat di luar kategori jika tidak ketemu)
-        category = discord.utils.get(guild.categories, name="TICKETS")
+        # OTOMATIS IKUT KATEGORI TEMPAT COMMAND /setup-ticket DIKETIK
+        target_category = interaction.channel.category
         channel_name = f"ticket-{member.name}"
         
         try:
             ticket_channel = await guild.create_text_channel(
                 name=channel_name,
                 overwrites=overwrites,
-                category=category
+                category=target_category
             )
         except Exception as e:
             await interaction.followup.send(f"⚠️ Gagal membuat channel tiket: {e}", ephemeral=True)
@@ -185,7 +181,7 @@ class TicketCreateView(discord.ui.View):
             view=ticket_view
         )
 
-        await interaction.followup.send(f"✅ Tiket kamu berhasil dibuat! Silارجy cek channel {ticket_channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"✅ Tiket kamu berhasil dibuat! Silakan cek channel {ticket_channel.mention}", ephemeral=True)
 
 # ==========================================
 # 4. SLASH COMMANDS

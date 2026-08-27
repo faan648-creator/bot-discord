@@ -51,7 +51,7 @@ async def on_ready():
         print(f"Gagal sinkronisasi command: {e}")
 
 # ==========================================
-# 3. INTERACTIVE VIEWS & MODALS (TOMBOL & FORM)
+# 3. INTERACTIVE VIEWS & COMPONENTS
 # ==========================================
 
 # View untuk Tombol Metode Pembayaran
@@ -65,7 +65,7 @@ class PaymentView(discord.ui.View):
         await interaction.response.send_message(
             f"📌 {interaction.user.mention} memilih metode pembayaran **QRIS**:\n"
             f"Silakan scan QR Code di bawah ini:\n{qris_url}\n\n"
-            f"*(Harap kirimkan bukti transfer jika sudah melakukan pembayaran!)*"
+            f"*(Harap kirimkan bukti transfer & username Roblox jika sudah melakukan pembayaran!)*"
         )
 
     @discord.ui.button(label="DANA", style=discord.ButtonStyle.primary, emoji="💳")
@@ -76,7 +76,7 @@ class PaymentView(discord.ui.View):
             f"📌 {interaction.user.mention} memilih metode pembayaran **DANA**:\n"
             f"• Nomor: `{number}`\n"
             f"• Atas Nama: `{name}`\n\n"
-            f"*(Harap kirimkan bukti transfer jika sudah melakukan pembayaran!)*"
+            f"*(Harap kirimkan bukti transfer & username Roblox jika sudah melakukan pembayaran!)*"
         )
 
     @discord.ui.button(label="GOPAY", style=discord.ButtonStyle.blurple, emoji="💳")
@@ -87,7 +87,7 @@ class PaymentView(discord.ui.View):
             f"📌 {interaction.user.mention} memilih metode pembayaran **GOPAY**:\n"
             f"• Nomor: `{number}`\n"
             f"• Atas Nama: `{name}`\n\n"
-            f"*(Harap kirimkan bukti transfer jika sudah melakukan pembayaran!)*"
+            f"*(Harap kirimkan bukti transfer & username Roblox jika sudah melakukan pembayaran!)*"
         )
 
     @discord.ui.button(label="ShopeePay", style=discord.ButtonStyle.danger, emoji="💳")
@@ -98,27 +98,10 @@ class PaymentView(discord.ui.View):
             f"📌 {interaction.user.mention} memilih metode pembayaran **ShopeePay**:\n"
             f"• Nomor: `{number}`\n"
             f"• Atas Nama: `{name}`\n\n"
-            f"*(Harap kirimkan bukti transfer jika sudah melakukan pembayaran!)*"
+            f"*(Harap kirimkan bukti transfer & username Roblox jika sudah melakukan pembayaran!)*"
         )
 
-# View gabungan di dalam Channel Tiket (Menu Payment + Tombol Close)
-class TicketInsideView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(PaymentButtonSelect())
-        self.add_item(CloseTicketButton())
-
-class PaymentButtonSelect(discord.ui.Button):
-    def __init__(self):
-        super().__init__(label="💳 Pilih Metode Pembayaran", style=discord.ButtonStyle.blurple, custom_id="btn_pay_inside")
-
-    async def callback(self, interaction: discord.Interaction):
-        view = PaymentView()
-        await interaction.response.send_message(
-            "💳 **SILAKAN PILIH METODE PEMBAYARAN DI BAWAH INI:**",
-            view=view
-        )
-
+# Tombol Close khusus Admin dengan auto-delete 5 detik
 class CloseTicketButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="🔒 Close Ticket", style=discord.ButtonStyle.red, custom_id="btn_close_ticket")
@@ -137,73 +120,72 @@ class CloseTicketButton(discord.ui.Button):
         except Exception as e:
             print(f"Gagal menghapus channel: {e}")
 
-# Form Modal Dinamis Sesuai Jumlah Slot
-class TicketModal(discord.ui.Modal, title="Form Pemesanan Slot Fish It X8"):
-    jumlah_slot = discord.ui.TextInput(
-        label="Mau beli berapa akun / slot? (1 - 5)",
-        placeholder="Masukkan angka 1 sampai 5...",
-        min_length=1,
-        max_length=1,
-        required=True
-    )
-    
-    usn_roblox_1 = discord.ui.TextInput(
-        label="Username Roblox (Akun 1)",
-        placeholder="Wajib diisi untuk akun pertama...",
-        required=True
-    )
+# View di dalam Tiket SETELAH jumlah akun dipilih (Muncul tombol Payment & Close)
+class ActiveTicketView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(PaymentButtonSelect())
+        self.add_item(CloseTicketButton())
 
-    usn_roblox_2 = discord.ui.TextInput(
-        label="Username Roblox (Akun 2 - Opsional)",
-        placeholder="Isi jika beli 2 akun...",
-        required=False
-    )
+class PaymentButtonSelect(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="💳 Pilih Metode Pembayaran", style=discord.ButtonStyle.blurple, custom_id="btn_pay_inside")
 
-    usn_roblox_3 = discord.ui.TextInput(
-        label="Username Roblox (Akun 3 - Opsional)",
-        placeholder="Isi jika beli 3 akun...",
-        required=False
-    )
+    async def callback(self, interaction: discord.Interaction):
+        view = PaymentView()
+        await interaction.response.send_message(
+            "💳 **SILAKAN PILIH METODE PEMBAYARAN DI BAWAH INI:**",
+            view=view
+        )
 
-    usn_roblox_4 = discord.ui.TextInput(
-        label="Username Roblox (Akun 4/5 - Opsional)",
-        placeholder="Isi jika beli 4/5 akun...",
-        required=False
-    )
+# Dropdown (Select Menu) untuk Memilih Jumlah Akun di dalam Tiket
+class SlotSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="1 Akun / Slot", value="1", description="Total: Rp 14.000", emoji="🛒"),
+            discord.SelectOption(label="2 Akun / Slot", value="2", description="Total: Rp 28.000", emoji="🛒"),
+            discord.SelectOption(label="3 Akun / Slot", value="3", description="Total: Rp 42.000", emoji="🛒"),
+            discord.SelectOption(label="4 Akun / Slot", value="4", description="Total: Rp 56.000", emoji="🛒"),
+            discord.SelectOption(label="5 Akun / Slot", value="5", description="Total: Rp 70.000", emoji="🛒"),
+        ]
+        super().__init__(placeholder="👉 Klik di sini untuk memilih jumlah akun...", min_values=1, max_values=1, options=options)
 
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        
-        try:
-            total_slot = int(self.jumlah_slot.value)
-            if not (1 <= total_slot <= 5):
-                raise ValueError()
-        except ValueError:
-            await interaction.followup.send("⚠️ Masukkan angka yang valid antara **1 sampai 5** untuk jumlah slot!", ephemeral=True)
-            return
-
-        # Kumpulkan username Roblox sesuai jumlah slot yang dipilih
-        daftar_usn = []
-        if total_slot >= 1 and self.usn_roblox_1.value.strip():
-            daftar_usn.append(self.usn_roblox_1.value.strip())
-        if total_slot >= 2 and self.usn_roblox_2.value.strip():
-            daftar_usn.append(self.usn_roblox_2.value.strip())
-        if total_slot >= 3 and self.usn_roblox_3.value.strip():
-            daftar_usn.append(self.usn_roblox_3.value.strip())
-        if total_slot >= 4 and self.usn_roblox_4.value.strip():
-            # Jika user beli 4 atau 5, ambil juga input dari field ke-4
-            input_split = self.usn_roblox_4.value.strip().split(",")
-            for u in input_split:
-                if u.strip():
-                    daftar_usn.append(u.strip())
-
+    async def callback(self, interaction: discord.Interaction):
+        total_slot = int(self.values[0])
         harga_per_slot = 14000
         total_harga = total_slot * harga_per_slot
+
+        # Kirim rincian tagihan dan ganti view dengan tombol pembayaran & close
+        active_view = ActiveTicketView()
+        await interaction.response.edit_message(
+            content=f"✅ {interaction.user.mention} memilih **{total_slot} Akun / Slot**.\n\n"
+                    f"📋 **Rincian Pemesanan:**\n"
+                    f"• Jumlah Akun: **{total_slot} Slot**\n"
+                    f"• Harga per Slot: **Rp 14.000**\n"
+                    f"• **TOTAL TAGIHAN: Rp {total_harga:,}**\n\n"
+                    f"👉 *Silakan kirimkan Username / Nick Roblox kamu di chat ini sesuai jumlah akun yang dipesan.*\n"
+                    f"👉 *Lalu klik tombol **Pilih Metode Pembayaran** di bawah untuk melunasi transaksi.*",
+            view=active_view
+        )
+
+class SlotSelectView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(SlotSelect())
+
+# View untuk Tombol Panel Utama (Create Ticket) di channel publik
+class TicketCreateView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="📩 Create Ticket", style=discord.ButtonStyle.green, custom_id="create_ticket_btn")
+    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
         
         guild = interaction.guild
         member = interaction.user
 
-        # Set permission: Hanya member ybs, bot, dan admin yang bisa lihat channel
+        # Set permission: Hanya member ybs, bot, dan admin yang bisa lihat channel (PRIVAT)
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             member: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
@@ -223,31 +205,15 @@ class TicketModal(discord.ui.Modal, title="Form Pemesanan Slot Fish It X8"):
             await interaction.followup.send(f"⚠️ Gagal membuat channel tiket: {e}", ephemeral=True)
             return
 
-        # Format list username Roblox untuk ditampilkan di tiket
-        formatted_usn = "\n".join([f"• Akun {i+1}: `{usn}`" for i, usn in enumerate(daftar_usn)]) if daftar_usn else "• Belum diisi / Cek manual"
-
-        # Kirim rincian pesanan ke channel privat tiket
-        ticket_view = TicketInsideView()
+        # Kirim pesan sambutan beserta Dropdown pilihan jumlah akun di dalam channel tiket
+        select_view = SlotSelectView()
         await ticket_channel.send(
             f"Halo {member.mention}! Terima kasih sudah membuka tiket.\n\n"
-            f"📋 **Rincian Pemesanan:**\n"
-            f"• Jumlah Akun / Slot: **{total_slot} Slot**\n"
-            f"• **Username Roblox:**\n{formatted_usn}\n"
-            f"• Harga per Slot: **Rp 14.000**\n"
-            f"• **TOTAL TAGIHAN: Rp {total_harga:,}**\n\n"
-            f"Silakan klik tombol **Pilih Metode Pembayaran** di bawah untuk melanjutkan transaksi.",
-            view=ticket_view
+            f"Silakan tentukan **berapa banyak akun / slot** yang ingin kamu beli melalui menu pilihan di bawah ini:",
+            view=select_view
         )
 
         await interaction.followup.send(f"✅ Tiket kamu berhasil dibuat! Silakan cek channel {ticket_channel.mention}", ephemeral=True)
-
-class TicketCreateView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label="📩 Create Ticket", style=discord.ButtonStyle.green, custom_id="create_ticket_btn")
-    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(TicketModal())
 
 # ==========================================
 # 4. SLASH COMMANDS
@@ -341,7 +307,7 @@ async def setup_ticket(interaction: discord.Interaction):
     view = TicketCreateView()
     await interaction.channel.send(
         "🛒 **SILAKAN BUAT TIKET TRANSAKSI**\n"
-        "Klik tombol di bawah ini untuk memasukkan jumlah akun/slot pesanan:",
+        "Klik tombol di bawah ini untuk memulai pembelian slot:",
         view=view
     )
     await interaction.followup.send("✅ Panel Create Ticket berhasil dikirim ke channel ini!", ephemeral=True)

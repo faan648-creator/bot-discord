@@ -1,6 +1,7 @@
 import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -33,7 +34,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ID Pesan list utama yang mau diedit otomatis
+# ID Pesan list utama yang mau diedit otomatis (untuk command /done)
 LIST_MESSAGE_ID = 1537343199348006993  
 
 @bot.event
@@ -46,8 +47,181 @@ async def on_ready():
         print(f"Gagal sinkronisasi command: {e}")
 
 # ==========================================
-# 3. SLASH COMMAND: /done
+# 3. INTERACTIVE VIEWS (TOMBOL-TOMBOL)
 # ==========================================
+
+# View untuk Tombol Metode Pembayaran
+class PaymentView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="QRIS", style=discord.ButtonStyle.green, emoji="🪪")
+    async def qris_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        qris_url = os.getenv("QRIS_IMAGE_URL", "https://link-default-gambar.com")
+        await interaction.response.send_message(
+            f"📌 **Detail Pembayaran QRIS:**\n"
+            f"Silakan scan QR Code di bawah ini:\n{qris_url}",
+            ephemeral=True
+        )
+
+    @discord.ui.button(label="DANA", style=discord.ButtonStyle.primary, emoji="💳")
+    async def dana_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        number = os.getenv("DANA_NUMBER", "08xxxxxxxxxx")
+        name = os.getenv("DANA_NAME", "Nama Pemilik")
+        await interaction.response.send_message(
+            f"📌 **Detail Pembayaran DANA:**\n"
+            f"• Nomor: `{number}`\n"
+            f"• Atas Nama: `{name}`\n\n"
+            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
+            ephemeral=True
+        )
+
+    @discord.ui.button(label="GOPAY", style=discord.ButtonStyle.blurple, emoji="💳")
+    async def gopay_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        number = os.getenv("GOPAY_NUMBER", "08xxxxxxxxxx")
+        name = os.getenv("GOPAY_NAME", "Nama Pemilik")
+        await interaction.response.send_message(
+            f"📌 **Detail Pembayaran GOPAY:**\n"
+            f"• Nomor: `{number}`\n"
+            f"• Atas Nama: `{name}`\n\n"
+            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
+            ephemeral=True
+        )
+
+    @discord.ui.button(label="ShopeePay", style=discord.ButtonStyle.danger, emoji="💳")
+    async def shopeepay_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        number = os.getenv("SHOPEEPAY_NUMBER", "08xxxxxxxxxx")
+        name = os.getenv("SHOPEEPAY_NAME", "Nama Pemilik")
+        await interaction.response.send_message(
+            f"📌 **Detail Pembayaran ShopeePay:**\n"
+            f"• Nomor: `{number}`\n"
+            f"• Atas Nama: `{name}`\n\n"
+            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
+            ephemeral=True
+        )
+
+# View gabungan di dalam Channel Tiket (Menu Payment + Tombol Close Khusus Admin)
+class TicketInsideView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        # Menambahkan tombol pembayaran ke dalam view tiket
+        self.add_item(PaymentButtonSelect())
+        self.add_item(CloseTicketButton())
+
+# Tombol pemicu info payment di dalam tiket
+class PaymentButtonSelect(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="💳 Pilih Metode Pembayaran", style=discord.ButtonStyle.blurple, custom_id="btn_pay_inside")
+
+    async def callback(self, interaction: discord.Interaction):
+        # Memunculkan pilihan metode bayar via ephemeral atau langsung teks
+        view = PaymentView()
+        await interaction.response.send_message(
+            "💳 **SILAKAN PILIH METODE PEMBAYARAN DI BAWAH INI:**",
+            view=view,
+            ephemeral=True
+        )
+
+# Tombol Close khusus Admin dengan auto-delete 5 detik
+class CloseTicketButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="🔒 Close Ticket", style=discord.ButtonStyle.red, custom_id="btn_close_ticket")
+
+    async def callback(self, interaction: discord.Interaction):
+        # Cek apakah yang klik punya izin Admin / Manage Channels
+        if not interaction.user.guild_permissions.manage_channels:
+            await interaction.response.send_message("❌ Kamu tidak memiliki izin untuk menutup tiket ini!", ephemeral=True)
+            return
+
+        await interaction.response.send_message("🔒 Tiket dikonfirmasi ditutup. Channel akan dihapus otomatis dalam **5 detik**...")
+        
+        # Jeda 5 detik
+        await asyncio.sleep(5)
+
+        try:
+            await interaction.channel.delete()
+        except Exception as e:
+            print(f"Gagal menghapus channel: {e}")
+
+# View untuk Tombol Panel Utama (Create Ticket) di channel publik
+class TicketCreateView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="📩 Create Ticket", style=discord.ButtonStyle.green, custom_id="create_ticket_btn")
+    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        
+        guild = interaction.guild
+        member = interaction.user
+
+        # Set permission: Hanya member ybs, bot, dan admin yang bisa lihat channel
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            member: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        }
+
+        # Cari kategori TICKETS (jika ada, atau buat di luar kategori jika tidak ketemu)
+        category = discord.utils.get(guild.categories, name="TICKETS")
+        channel_name = f"ticket-{member.name}"
+        
+        try:
+            ticket_channel = await guild.create_text_channel(
+                name=channel_name,
+                overwrites=overwrites,
+                category=category
+            )
+        except Exception as e:
+            await interaction.followup.send(f"⚠️ Gagal membuat channel tiket: {e}", ephemeral=True)
+            return
+
+        # Kirim pesan sambutan & menu kontrol di dalam channel privat tiket baru
+        ticket_view = TicketInsideView()
+        await ticket_channel.send(
+            f"Halo {member.mention}! Terima kasih sudah membuka tiket.\n"
+            f"Silakan klik tombol **Pilih Metode Pembayaran** di bawah untuk melunasi transaksi.\n\n"
+            f"*(Tombol Close di bawah hanya dapat digunakan oleh Admin)*",
+            view=ticket_view
+        )
+
+        await interaction.followup.send(f"✅ Tiket kamu berhasil dibuat! Silارجy cek channel {ticket_channel.mention}", ephemeral=True)
+
+# ==========================================
+# 4. SLASH COMMANDS
+# ==========================================
+
+# Command /setuplist (Untuk panel rekap slot kloter)
+@bot.tree.command(name="setuplist", description="Mengirim pesan list rekap Fish It X8 otomatis ke channel ini")
+async def setuplist(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    if interaction.channel.name != "ptpt-x8":
+        await interaction.followup.send("⚠️ Perintah ini hanya bisa digunakan di channel **#ptpt-x8**!", ephemeral=True)
+        return
+
+    format_list = (
+        "LIST BOOST SERVER FISH IT X8 By <@617248535913693194>  <@785872264100446210>\n\n"
+        "13k/SLOT\n\n"
+        "KLOTER 21 ( 24 JAM )\n\n"
+        "LIST MENGGUNAKAN Usn & Nick ROBLOX\n"
+        "Contoh : zens1907\n\n"
+        "1. -\n2. -\n3. -\n4. -\n5. -\n"
+        "6. -\n7. -\n8. -\n9. -\n10. -\n"
+        "11. -\n12. -\n13. -\n14. -\n15. -\n"
+        "16. -\n17. -\n18. -\n19. dmin 2\n20. Admin 1"
+    )
+
+    sent_message = await interaction.channel.send(format_list)
+    
+    await interaction.followup.send(
+        f"✅ Berhasil membuat pesan list Kloter 21!\n\n"
+        f"Salin Message ID di bawah ini dan masukkan ke variabel `LIST_MESSAGE_ID` di kodingan bot:\n"
+        f"`{sent_message.id}`",
+        ephemeral=True
+    )
+
+# Command /done (Mengisi slot list otomatis)
 @bot.tree.command(name="done", description="Mengisi slot list rekap Fish It X8 secara otomatis")
 @app_commands.describe(
     slot_number="Nomor slot yang ingin diisi (contoh: 1, 2, dst)",
@@ -100,123 +274,22 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
             ephemeral=True
         )
 
-# ==========================================
-# 4. SLASH COMMAND: /setuplist
-# ==========================================
-@bot.tree.command(name="setuplist", description="Mengirim pesan list rekap Fish It X8 otomatis ke channel ini")
-async def setuplist(interaction: discord.Interaction):
+# Command /setup-ticket (Untuk memunculkan tombol panel create ticket di channel publik)
+@bot.tree.command(name="setup-ticket", description="Memunculkan panel tombol untuk membuat tiket transaksi")
+async def setup_ticket(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
-
-    if interaction.channel.name != "ptpt-x8":
-        await interaction.followup.send("⚠️ Perintah ini hanya bisa digunakan di channel **#ptpt-x8**!", ephemeral=True)
-        return
-
-    format_list = (
-        "LIST BOOST SERVER FISH IT X8 By <@617248535913693194>  <@785872264100446210>\n\n"
-        "13k/SLOT\n\n"
-        "KLOTER 21 ( 24 JAM )\n\n"
-        "LIST MENGGUNAKAN Usn & Nick ROBLOX\n"
-        "Contoh : zens1907\n\n"
-        "1. -\n"
-        "2. -\n"
-        "3. -\n"
-        "4. -\n"
-        "5. -\n"
-        "6. -\n"
-        "7. -\n"
-        "8. -\n"
-        "9. -\n"
-        "10. -\n"
-        "11. -\n"
-        "12. -\n"
-        "13. -\n"
-        "14. -\n"
-        "15. -\n"
-        "16. -\n"
-        "17. -\n"
-        "18. -\n"
-        "19. dmin 2\n"
-        "20. Admin 1"
-    )
-
-    sent_message = await interaction.channel.send(format_list)
     
-    await interaction.followup.send(
-        f"✅ Berhasil membuat pesan list Kloter 21!\n\n"
-        f"Salin Message ID di bawah ini dan masukkan ke variabel `LIST_MESSAGE_ID` di kodingan bot:\n"
-        f"`{sent_message.id}`",
-        ephemeral=True
-    )
-
-# ==========================================
-# 5. VIEW & BUTTONS: Tombol Pilihan Payment (Aman via Render Env)
-# ==========================================
-class PaymentView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label="QRIS", style=discord.ButtonStyle.green, emoji="🪪")
-    async def qris_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        qris_url = os.getenv("QRIS_IMAGE_URL", "https://link-default-gambar.com")
-        await interaction.response.send_message(
-            f"📌 **Detail Pembayaran QRIS:**\n"
-            f"Silakan scan QR Code di bawah ini:\n{qris_url}",
-            ephemeral=True
-        )
-
-    @discord.ui.button(label="DANA", style=discord.ButtonStyle.primary, emoji="💳")
-    async def dana_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        number = os.getenv("DANA_NUMBER", "08xxxxxxxxxx")
-        name = os.getenv("DANA_NAME", "Nama Pemilik")
-        await interaction.response.send_message(
-            f"📌 **Detail Pembayaran DANA:**\n"
-            f"• Nomor: `{number}`\n"
-            f"• Atas Nama: `{name}`\n\n"
-            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
-            ephemeral=True
-        )
-
-    @discord.ui.button(label="GOPAY", style=discord.ButtonStyle.blurple, emoji="💳")
-    async def gopay_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        number = os.getenv("GOPAY_NUMBER", "08xxxxxxxxxx")
-        name = os.getenv("GOPAY_NAME", "Nama Pemilik")
-        await interaction.response.send_message(
-            f"📌 **Detail Pembayaran GOPAY:**\n"
-            f"• Nomor: `{number}`\n"
-            f"• Atas Nama: `{name}`\n\n"
-            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
-            ephemeral=True
-        )
-
-    @discord.ui.button(label="ShopeePay", style=discord.ButtonStyle.danger, emoji="💳")
-    async def shopeepay_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        number = os.getenv("SHOPEEPAY_NUMBER", "08xxxxxxxxxx")
-        name = os.getenv("SHOPEEPAY_NAME", "Nama Pemilik")
-        await interaction.response.send_message(
-            f"📌 **Detail Pembayaran ShopeePay:**\n"
-            f"• Nomor: `{number}`\n"
-            f"• Atas Nama: `{name}`\n\n"
-            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
-            ephemeral=True
-        )
-
-# ==========================================
-# 6. SLASH COMMAND: /payment
-# ==========================================
-@bot.tree.command(name="payment", description="Menampilkan pilihan tombol metode pembayaran untuk buyer")
-async def payment(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-
-    view = PaymentView()
+    view = TicketCreateView()
     await interaction.channel.send(
-        "💳 **SILAKAN PILIH METODE PEMBAYARAN**\n"
-        "Klik tombol di bawah ini sesuai dengan metode pembayaran yang ingin digunakan:",
+        "🛒 **SILAKAN BUAT TIKET TRANSAKSI**\n"
+        "Klik tombol di bawah ini untuk membuat channel privat pemesanan:",
         view=view
     )
-    
-    await interaction.followup.send("✅ Berhasil mengirim menu tombol pembayaran ke channel ini!", ephemeral=True)
+    await interaction.followup.send("✅ Panel Create Ticket berhasil dikirim ke channel ini!", ephemeral=True)
 
-# Jalankan Bot
+# ==========================================
+# 5. MENJALANKAN BOT
+# ==========================================
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 if not TOKEN:
     print("⚠️ ERROR: Token bot Discord tidak ditemukan!")

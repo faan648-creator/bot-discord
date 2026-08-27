@@ -33,8 +33,8 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ID Pesan list utama yang mau diedit otomatis (tetap pakai ID pesan listnya)
-LIST_MESSAGE_ID = 987654321098765432  
+# ID Pesan list utama yang mau diedit otomatis
+LIST_MESSAGE_ID = 1537343199348006993  
 
 @bot.event
 async def on_ready():
@@ -56,7 +56,6 @@ async def on_ready():
 async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: str):
     await interaction.response.defer(ephemeral=True)
 
-    # Bot otomatis mencari channel berdasarkan nama "ptpt-x8" di server ini
     target_channel_name = "ptpt-x8"
     rekap_channel = discord.utils.get(interaction.guild.text_channels, name=target_channel_name)
     
@@ -68,8 +67,7 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
         return
 
     try:
-        # Ambil pesan list utama berdasarkan ID Message dari channel ptpt-x8
-        msg = await rekap_channel.fetch_message(1537343199348006993)
+        msg = await rekap_channel.fetch_message(LIST_MESSAGE_ID)
     except discord.NotFound:
         await interaction.followup.send(
             f"⚠️ Pesan list utama tidak ditemukan di channel #{target_channel_name}! Pastikan LIST_MESSAGE_ID benar.",
@@ -77,13 +75,11 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
         )
         return
 
-    # Ambil teks asli dari pesan list
     current_content = msg.content
     lines = current_content.split("\n")
     updated_lines = []
     found = False
 
-    # Cari baris yang sesuai dengan nomor slot yang mau diisi
     for line in lines:
         if line.strip().startswith(f"{slot_number}."):
             updated_lines.append(f"{slot_number}. {roblox_usn} ✅")
@@ -93,7 +89,6 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
 
     if found:
         new_content = "\n".join(updated_lines)
-        # Edit pesan list di channel ptpt-x8 secara otomatis
         await msg.edit(content=new_content)
         await interaction.followup.send(
             f"✅ Slot nomor **{slot_number}** berhasil diisi oleh **{roblox_usn}** di channel **#{target_channel_name}**!",
@@ -106,18 +101,16 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
         )
 
 # ==========================================
-# 4. SLASH COMMAND: /setuplist (Otomatis kirim format list Fish It X8)
+# 4. SLASH COMMAND: /setuplist
 # ==========================================
 @bot.tree.command(name="setuplist", description="Mengirim pesan list rekap Fish It X8 otomatis ke channel ini")
 async def setuplist(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
-    # Pastikan perintah dijalankan di channel ptpt-x8
     if interaction.channel.name != "ptpt-x8":
         await interaction.followup.send("⚠️ Perintah ini hanya bisa digunakan di channel **#ptpt-x8**!", ephemeral=True)
         return
 
-    # Format teks list Fish It X8 sesuai permintaan lu
     format_list = (
         "LIST BOOST SERVER FISH IT X8 By <@617248535913693194>  <@785872264100446210>\n\n"
         "13k/SLOT\n\n"
@@ -146,7 +139,6 @@ async def setuplist(interaction: discord.Interaction):
         "20. Admin 1"
     )
 
-    # Bot mengirim pesan list ke channel ptpt-x8
     sent_message = await interaction.channel.send(format_list)
     
     await interaction.followup.send(
@@ -155,6 +147,74 @@ async def setuplist(interaction: discord.Interaction):
         f"`{sent_message.id}`",
         ephemeral=True
     )
+
+# ==========================================
+# 5. VIEW & BUTTONS: Tombol Pilihan Payment (Aman via Render Env)
+# ==========================================
+class PaymentView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="QRIS", style=discord.ButtonStyle.green, emoji="🪪")
+    async def qris_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        qris_url = os.getenv("QRIS_IMAGE_URL", "https://link-default-gambar.com")
+        await interaction.response.send_message(
+            f"📌 **Detail Pembayaran QRIS:**\n"
+            f"Silakan scan QR Code di bawah ini:\n{qris_url}",
+            ephemeral=True
+        )
+
+    @discord.ui.button(label="DANA", style=discord.ButtonStyle.primary, emoji="💳")
+    async def dana_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        number = os.getenv("DANA_NUMBER", "08xxxxxxxxxx")
+        name = os.getenv("DANA_NAME", "Nama Pemilik")
+        await interaction.response.send_message(
+            f"📌 **Detail Pembayaran DANA:**\n"
+            f"• Nomor: `{number}`\n"
+            f"• Atas Nama: `{name}`\n\n"
+            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
+            ephemeral=True
+        )
+
+    @discord.ui.button(label="GOPAY", style=discord.ButtonStyle.blurple, emoji="💳")
+    async def gopay_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        number = os.getenv("GOPAY_NUMBER", "08xxxxxxxxxx")
+        name = os.getenv("GOPAY_NAME", "Nama Pemilik")
+        await interaction.response.send_message(
+            f"📌 **Detail Pembayaran GOPAY:**\n"
+            f"• Nomor: `{number}`\n"
+            f"• Atas Nama: `{name}`\n\n"
+            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
+            ephemeral=True
+        )
+
+    @discord.ui.button(label="ShopeePay", style=discord.ButtonStyle.danger, emoji="💳")
+    async def shopeepay_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        number = os.getenv("SHOPEEPAY_NUMBER", "08xxxxxxxxxx")
+        name = os.getenv("SHOPEEPAY_NAME", "Nama Pemilik")
+        await interaction.response.send_message(
+            f"📌 **Detail Pembayaran ShopeePay:**\n"
+            f"• Nomor: `{number}`\n"
+            f"• Atas Nama: `{name}`\n\n"
+            f"Harap kirim bukti transfer jika sudah melakukan pembayaran!",
+            ephemeral=True
+        )
+
+# ==========================================
+# 6. SLASH COMMAND: /payment
+# ==========================================
+@bot.tree.command(name="payment", description="Menampilkan pilihan tombol metode pembayaran untuk buyer")
+async def payment(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    view = PaymentView()
+    await interaction.channel.send(
+        "💳 **SILAKAN PILIH METODE PEMBAYARAN**\n"
+        "Klik tombol di bawah ini sesuai dengan metode pembayaran yang ingin digunakan:",
+        view=view
+    )
+    
+    await interaction.followup.send("✅ Berhasil mengirim menu tombol pembayaran ke channel ini!", ephemeral=True)
 
 # Jalankan Bot
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")

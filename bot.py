@@ -39,7 +39,7 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ID Pesan list utama yang mau diedit otomatis (untuk command /done)
-LIST_MESSAGE_ID = 1544980337036369951 
+LIST_MESSAGE_ID = 1544981020355465246
 
 @bot.event
 async def on_ready():

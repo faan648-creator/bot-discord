@@ -44,7 +44,7 @@ intents.members = True  # Wajib diaktifkan untuk event member join/remove
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ID Pesan list utama yang mau diedit otomatis (untuk command /done)
-LIST_MESSAGE_ID = int(os.getenv("LIST_MESSAGE_ID")
+LIST_MESSAGE_ID = int(os.getenv("LIST_MESSAGE_ID"))
 
 # Konfigurasi Channel ID untuk Welcome & Goodbye (Ganti dengan ID Channel tujuan)
 WELCOME_CHANNEL_ID = (

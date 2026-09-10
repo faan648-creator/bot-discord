@@ -46,13 +46,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # ID Pesan list utama yang mau diedit otomatis (untuk command /done)
 LIST_MESSAGE_ID = int(os.getenv("LIST_MESSAGE_ID"))
 
-# Konfigurasi Channel ID untuk Welcome & Goodbye (Ganti dengan ID Channel tujuan)
-WELCOME_CHANNEL_ID = (
-    123456789012345678  # Sesuaikan dengan ID channel sambutan di server kamu
-)
-GOODBYE_CHANNEL_ID = (
-    123456789012345678  # Bisa disamakan atau dibedakan dengan channel welcome
-)
+# Konfigurasi Channel ID untuk Welcome & Goodbye (diambil dari Render Environment Variables)
+WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", "123456789012345678"))
+GOODBYE_CHANNEL_ID = int(os.getenv("GOODBYE_CHANNEL_ID", "123456789012345678"))
 
 
 @bot.event

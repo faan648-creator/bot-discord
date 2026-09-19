@@ -47,13 +47,14 @@ WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", "123456789012345678"))
 GOODBYE_CHANNEL_ID = int(os.getenv("GOODBYE_CHANNEL_ID", "123456789012345678"))
 REMINDER_CHANNEL_ID = int(os.getenv("REMINDER_CHANNEL_ID", "123456789012345678"))
 
-# Variabel untuk melacak ID pesan pengingat terakhir
+# Variabel untuk melacak ID dan isi pesan pengingat terakhir
 last_reminder_id = None
+last_reminder_text = "Halo! Ini adalah pesan pengingat awal."
 
 async def send_latest_reminder(bot_instance, custom_message: str):
-    global last_reminder_id
+    global last_reminder_id, last_reminder_text
+    last_reminder_text = custom_message  # Simpan teks terbaru
     
-    # Ambil channel secara spesifik berdasarkan ID dari environment variable
     channel = bot_instance.get_channel(REMINDER_CHANNEL_ID)
     if not channel:
         return
@@ -66,7 +67,7 @@ async def send_latest_reminder(bot_instance, custom_message: str):
         except Exception:
             pass
 
-    # 2. Kirim pesan pengingat baru dengan teks custom ke channel khusus tersebut
+    # 2. Kirim pesan pengingat baru di paling bawah
     new_msg = await channel.send(custom_message)
     last_reminder_id = new_msg.id
 
@@ -80,7 +81,32 @@ async def on_ready():
         print(f"Gagal sinkronisasi command: {e}")
 
 # ==========================================
-# 3. FITUR WELCOME & GOODBYE (INTERAKTIF & MENARIK)
+# 3. FITUR AGAR REMINDER SELALU DI PALING BAWAH
+# ==========================================
+@bot.event
+async def on_message(message):
+    global last_reminder_id, last_reminder_text
+
+    # Izinkan bot memproses command lain (seperti /reminder, /done, dll)
+    await bot.process_commands(message)
+
+    # Pastikan event hanya berjalan di channel reminder dan pesan bukan dari bot sendiri
+    if message.channel.id == REMINDER_CHANNEL_ID and not message.author.bot:
+        if last_reminder_text:
+            # Hapus pesan reminder lama
+            if last_reminder_id:
+                try:
+                    old_msg = await message.channel.fetch_message(last_reminder_id)
+                    await old_msg.delete()
+                except Exception:
+                    pass
+
+            # Kirim ulang pesan reminder agar posisinya otomatis turun ke paling bawah
+            new_msg = await message.channel.send(last_reminder_text)
+            last_reminder_id = new_msg.id
+
+# ==========================================
+# 4. FITUR WELCOME & GOODBYE (INTERAKTIF & MENARIK)
 # ==========================================
 
 @bot.event
@@ -135,7 +161,7 @@ async def on_member_remove(member):
     await channel.send(embed=embed)
 
 # ==========================================
-# 4. INTERACTIVE VIEWS & COMPONENTS
+# 5. INTERACTIVE VIEWS & COMPONENTS
 # ==========================================
 
 class PaymentView(discord.ui.View):
@@ -287,7 +313,7 @@ class TicketCreateView(discord.ui.View):
         await interaction.followup.send(f"✅ Tiket kamu berhasil dibuat! Silakan cek channel {ticket_channel.mention}", ephemeral=True)
 
 # ==========================================
-# 5. SLASH COMMANDS
+# 6. SLASH COMMANDS
 # ==========================================
 
 @bot.tree.command(name="setuplist", description="Mengirim pesan list rekap Fish It X8 otomatis ke channel ini")

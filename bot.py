@@ -42,9 +42,33 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # ID Pesan list utama yang mau diedit otomatis (diambil dari Render)
 LIST_MESSAGE_ID = int(os.getenv("LIST_MESSAGE_ID", "1544981020355465246"))
 
-# Konfigurasi Channel ID untuk Welcome & Goodbye (diambil dari Render Environment Variables)
+# Konfigurasi Channel ID (diambil dari Render Environment Variables)
 WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", "123456789012345678"))
 GOODBYE_CHANNEL_ID = int(os.getenv("GOODBYE_CHANNEL_ID", "123456789012345678"))
+REMINDER_CHANNEL_ID = int(os.getenv("REMINDER_CHANNEL_ID", "123456789012345678"))
+
+# Variabel untuk melacak ID pesan pengingat terakhir
+last_reminder_id = None
+
+async def send_latest_reminder(bot_instance, custom_message: str):
+    global last_reminder_id
+    
+    # Ambil channel secara spesifik berdasarkan ID dari environment variable
+    channel = bot_instance.get_channel(REMINDER_CHANNEL_ID)
+    if not channel:
+        return
+
+    # 1. Hapus pesan pengingat lama jika ada di channel tersebut
+    if last_reminder_id:
+        try:
+            old_msg = await channel.fetch_message(last_reminder_id)
+            await old_msg.delete()
+        except Exception:
+            pass
+
+    # 2. Kirim pesan pengingat baru dengan teks custom ke channel khusus tersebut
+    new_msg = await channel.send(custom_message)
+    last_reminder_id = new_msg.id
 
 @bot.event
 async def on_ready():
@@ -346,6 +370,16 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
             f"⚠️ Slot nomor {slot_number} tidak ditemukan dalam format list!",
             ephemeral=True
         )
+
+@bot.tree.command(name="reminder", description="Mengirim atau memperbarui pesan pengingat custom ke channel khusus")
+@app_commands.describe(pesan="Teks atau isi pengingat yang ingin dikirim")
+async def reminder(interaction: discord.Interaction, pesan: str):
+    await interaction.response.defer(ephemeral=True)
+    
+    # Memanggil fungsi reminder dengan teks custom yang dikirim ke REMINDER_CHANNEL_ID
+    await send_latest_reminder(bot, pesan)
+    
+    await interaction.followup.send("✅ Pesan pengingat berhasil dikirim/diperbarui dengan teks custom ke channel khusus!", ephemeral=True)
 
 @bot.tree.command(name="setup-ticket", description="Memunculkan panel tombol untuk membuat tiket transaksi")
 async def setup_ticket(interaction: discord.Interaction):

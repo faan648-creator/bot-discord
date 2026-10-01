@@ -327,13 +327,13 @@ async def setuplist(interaction: discord.Interaction):
     format_list = (
         "LIST BOOST SERVER FISH IT X8 By <@617248535913693194> <@785872264100446210>\n\n"
         "14k/SLOT\n\n"
-        "KLOTER 26 ( 24 JAM )\n\n"
+        "KLOTER 27 ( 24 JAM )\n\n"
         "LIST MENGGUNAKAN Usn & Nick ROBLOX\n"
         "Contoh : zens1907\n\n"
         "1. -\n2. -\n3. -\n4. -\n5. -\n"
         "6. -\n7. -\n8. -\n9. -\n10. -\n"
         "11. -\n12. -\n13. -\n14. -\n15. -\n"
-        "16. -\n17. -\n18. -\n19. dmin 2\n20. Admin 1"
+        "16. -\n17. -\n18. -\n19. Admin 2\n20. Admin 1"
     )
 
     sent_message = await interaction.channel.send(format_list)

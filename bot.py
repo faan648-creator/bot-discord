@@ -47,6 +47,9 @@ WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", "123456789012345678"))
 GOODBYE_CHANNEL_ID = int(os.getenv("GOODBYE_CHANNEL_ID", "123456789012345678"))
 REMINDER_CHANNEL_ID = int(os.getenv("REMINDER_CHANNEL_ID", "123456789012345678"))
 
+# ID Role ber-simbol 🍀 (Diambil dari Render Environment Variables)
+BUYER_ROLE_ID = int(os.getenv("BUYER_ROLE_ID", "123456789012345678"))
+
 # Variabel untuk melacak ID dan isi pesan pengingat terakhir
 last_reminder_id = None
 last_reminder_text = "Halo! Ini adalah pesan pengingat awal."
@@ -300,7 +303,7 @@ class TicketCreateView(discord.ui.View):
                 name=channel_name, overwrites=overwrites, category=target_category
             )
         except Exception as e:
-            await interaction.followup.send(f"⚠️ Gagal membuat channel tiket: {e}", ephemeral=True)
+            await interaction.followup.send(f"⚠️️ Gagal membuat channel tiket: {e}", ephemeral=True)
             return
 
         select_view = SlotSelectView()
@@ -345,12 +348,13 @@ async def setuplist(interaction: discord.Interaction):
         ephemeral=True
     )
 
-@bot.tree.command(name="done", description="Mengisi slot list rekap Fish It X8 secara otomatis")
+@bot.tree.command(name="done", description="Mengisi slot list rekap Fish It X8 secara otomatis dan beri role 🍀")
 @app_commands.describe(
     slot_number="Nomor slot yang ingin diisi (contoh: 1, 2, dst)",
-    roblox_usn="Username / Nick Roblox buyer"
+    roblox_usn="Username / Nick Roblox buyer",
+    buyer="Mention user Discord buyer untuk diberi role 🍀"
 )
-async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: str):
+async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: str, buyer: discord.Member):
     await interaction.response.defer(ephemeral=True)
 
     target_channel_name = "ptpt-x8"
@@ -387,13 +391,28 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
     if found:
         new_content = "\n".join(updated_lines)
         await msg.edit(content=new_content)
+        
+        # Fitur Auto Role menggunakan ID Role
+        role_status = ""
+        if buyer:
+            role = interaction.guild.get_role(BUYER_ROLE_ID)
+            
+            if role:
+                try:
+                    await buyer.add_roles(role)
+                    role_status = f"\n🍀 Berhasil memberikan role **{role.name}** kepada {buyer.mention}!"
+                except Exception as e:
+                    role_status = f"\n⚠️ Gagal memberikan role (Cek posisi role bot di atas role 🍀): {e}"
+            else:
+                role_status = f"\n⚠️ Role dengan ID `{BUYER_ROLE_ID}` tidak ditemukan di server!"
+
         await interaction.followup.send(
-            f"✅ Slot nomor **{slot_number}** berhasil diisi oleh **{roblox_usn}** di channel **#{target_channel_name}**!",
+            f"✅ Slot nomor **{slot_number}** berhasil diisi oleh **{roblox_usn}** di channel **#{target_channel_name}**!{role_status}",
             ephemeral=True
         )
     else:
         await interaction.followup.send(
-            f"⚠️ Slot nomor {slot_number} tidak ditemukan dalam format list!",
+            f"⚠️️ Slot nomor {slot_number} tidak ditemukan dalam format list!",
             ephemeral=True
         )
 
@@ -420,7 +439,7 @@ async def setup_ticket(interaction: discord.Interaction):
     await interaction.followup.send("✅ Panel Create Ticket berhasil dikirim ke channel ini!", ephemeral=True)
 
 # ==========================================
-# 6. MENJALANKAN BOT
+# 7. MENJALANKAN BOT
 # ==========================================
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 if not TOKEN:

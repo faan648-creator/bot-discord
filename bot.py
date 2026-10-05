@@ -329,7 +329,7 @@ async def setuplist(interaction: discord.Interaction):
 
     format_list = (
         "LIST BOOST SERVER FISH IT X8 By <@617248535913693194> <@785872264100446210>\n\n"
-        "14k/SLOT\n\n"
+        "8k/SLOT\n\n"
         "KLOTER EVENT ( 6 Jam )\n\n"
         "LIST MENGGUNAKAN Usn & Nick ROBLOX\n"
         "Contoh : zens1907\n\n"

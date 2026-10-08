@@ -247,7 +247,7 @@ class SlotSelect(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(label="1 Akun / Slot", value="1", description="Total: Rp 15.000", emoji="🛒"),
-            discord.SelectOption(label="2 Akun / Slot", value="2", description="Total: Rp 38.000", emoji="🛒"),
+            discord.SelectOption(label="2 Akun / Slot", value="2", description="Total: Rp 30.000", emoji="🛒"),
             discord.SelectOption(label="3 Akun / Slot", value="3", description="Total: Rp 45.000", emoji="🛒"),
             discord.SelectOption(label="4 Akun / Slot", value="4", description="Total: Rp 60.000", emoji="🛒"),
             discord.SelectOption(label="5 Akun / Slot", value="5", description="Total: Rp 75.000", emoji="🛒"),

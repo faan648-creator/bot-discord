@@ -246,11 +246,11 @@ class PaymentButtonSelect(discord.ui.Button):
 class SlotSelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="1 Akun / Slot", value="1", description="Total: Rp 14.000", emoji="🛒"),
-            discord.SelectOption(label="2 Akun / Slot", value="2", description="Total: Rp 28.000", emoji="🛒"),
-            discord.SelectOption(label="3 Akun / Slot", value="3", description="Total: Rp 42.000", emoji="🛒"),
-            discord.SelectOption(label="4 Akun / Slot", value="4", description="Total: Rp 56.000", emoji="🛒"),
-            discord.SelectOption(label="5 Akun / Slot", value="5", description="Total: Rp 70.000", emoji="🛒"),
+            discord.SelectOption(label="1 Akun / Slot", value="1", description="Total: Rp 15.000", emoji="🛒"),
+            discord.SelectOption(label="2 Akun / Slot", value="2", description="Total: Rp 38.000", emoji="🛒"),
+            discord.SelectOption(label="3 Akun / Slot", value="3", description="Total: Rp 45.000", emoji="🛒"),
+            discord.SelectOption(label="4 Akun / Slot", value="4", description="Total: Rp 60.000", emoji="🛒"),
+            discord.SelectOption(label="5 Akun / Slot", value="5", description="Total: Rp 75.000", emoji="🛒"),
         ]
         super().__init__(placeholder="👉 Klik di sini untuk memilih jumlah akun...", min_values=1, max_values=1, options=options)
 
@@ -265,7 +265,7 @@ class SlotSelect(discord.ui.Select):
                 f"✅ {interaction.user.mention} memilih **{total_slot} Akun / Slot**.\n\n"
                 f"📋 **Rincian Pemesanan:**\n"
                 f"• Jumlah Akun: **{total_slot} Slot**\n"
-                f"• Harga per Slot: **Rp 14.000**\n"
+                f"• Harga per Slot: **Rp 15.000**\n"
                 f"• **TOTAL TAGIHAN: Rp {total_harga:,}**\n\n"
                 f"👉 *Silakan kirimkan Username / Nick Roblox kamu di chat ini sesuai jumlah akun yang dipesan.*\n"
                 f"👉 *Lalu klik tombol **Pilih Metode Pembayaran** di bawah untuk melunasi transaksi.*"

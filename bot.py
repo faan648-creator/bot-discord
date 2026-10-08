@@ -256,7 +256,7 @@ class SlotSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         total_slot = int(self.values[0])
-        harga_per_slot = 14000
+        harga_per_slot = 15000
         total_harga = total_slot * harga_per_slot
 
         active_view = ActiveTicketView()

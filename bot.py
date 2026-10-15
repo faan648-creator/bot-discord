@@ -303,7 +303,7 @@ class TicketCreateView(discord.ui.View):
                 name=channel_name, overwrites=overwrites, category=target_category
             )
         except Exception as e:
-            await interaction.followup.send(f"⚠️️ Gagal membuat channel tiket: {e}", ephemeral=True)
+            await interaction.followup.send(f"⚠ Gagal membuat channel tiket: {e}", ephemeral=True)
             return
 
         select_view = SlotSelectView()
@@ -412,7 +412,58 @@ async def done(interaction: discord.Interaction, slot_number: int, roblox_usn: s
         )
     else:
         await interaction.followup.send(
-            f"⚠️️ Slot nomor {slot_number} tidak ditemukan dalam format list!",
+            f"⚠ Slot nomor {slot_number} tidak ditemukan dalam format list!",
+            ephemeral=True
+        )
+
+@bot.tree.command(name="undone", description="Menghapus nama dari slot list rekap dan mengembalikannya ke kosong (-)")
+@app_commands.describe(
+    slot_number="Nomor slot yang ingin dihapus/dikosongkan (contoh: 1, 2, dst)"
+)
+async def undone(interaction: discord.Interaction, slot_number: int):
+    await interaction.response.defer(ephemeral=True)
+
+    target_channel_name = "ptpt-x8"
+    rekap_channel = discord.utils.get(interaction.guild.text_channels, name=target_channel_name)
+    
+    if not rekap_channel:
+        await interaction.followup.send(
+            f"⚠️ Channel dengan nama **#{target_channel_name}** tidak ditemukan di server ini!",
+            ephemeral=True
+        )
+        return
+
+    try:
+        msg = await rekap_channel.fetch_message(LIST_MESSAGE_ID)
+    except discord.NotFound:
+        await interaction.followup.send(
+            f"⚠️ Pesan list utama tidak ditemukan di channel #{target_channel_name}! Pastikan LIST_MESSAGE_ID benar.",
+            ephemeral=True
+        )
+        return
+
+    current_content = msg.content
+    lines = current_content.split("\n")
+    updated_lines = []
+    found = False
+
+    for line in lines:
+        if line.strip().startswith(f"{slot_number}."):
+            updated_lines.append(f"{slot_number}. -")
+            found = True
+        else:
+            updated_lines.append(line)
+
+    if found:
+        new_content = "\n".join(updated_lines)
+        await msg.edit(content=new_content)
+        await interaction.followup.send(
+            f"🗑️ Slot nomor **{slot_number}** berhasil dikosongkan di channel **#{target_channel_name}**!",
+            ephemeral=True
+        )
+    else:
+        await interaction.followup.send(
+            f"⚠ Slot nomor {slot_number} tidak ditemukan dalam format list!",
             ephemeral=True
         )
 
